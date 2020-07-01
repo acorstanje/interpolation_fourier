@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import pickle
-import interpolation_Fourier_release2 as interpF
+import interpolation_Fourier as interpF
 
 def do_plot_radial(interp_fourier, max_mode=2):
     radial_interpolator = interp_fourier.get_angular_FFT_interpolator()
