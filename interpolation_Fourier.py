@@ -1,5 +1,5 @@
-# Module for Fourier interpolation of simulated CR radio footprints
-# Author: A. Corstanje (a.corstanje@astro.ru.nl), May 2020
+# Module for Fourier interpolation of 2D functions sampled on a polar grid
+# Author: A. Corstanje (a.corstanje@astro.ru.nl), July 2020
 
 import numpy as np
 import scipy.interpolate as intp

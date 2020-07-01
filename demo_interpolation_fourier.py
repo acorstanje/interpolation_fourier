@@ -1,3 +1,6 @@
+# Demo script for interpolation_Fourier.py. 
+# Author: Arthur Corstanje (a.corstanje@astro.ru.nl), July 2020 
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
