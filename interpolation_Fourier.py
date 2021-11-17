@@ -22,7 +22,7 @@ class interp2d_fourier:
         radial_steps = len(np.where(np.abs(test) < 0.0001)[0])
         phi_steps = len(phi_sorting) // radial_steps
         phi_sorting = phi_sorting.reshape((phi_steps, radial_steps))
-
+    
         indices = np.argsort(radius[phi_sorting], axis=1)
         for i in range(phi_steps): # Sort by radius; should be possible without for-loop...
             phi_sorting[i] = phi_sorting[i][indices[i]]
@@ -41,7 +41,7 @@ class interp2d_fourier:
 
         return (cos_components, sin_components)
 
-    def __init__(self, x, y, values, radial_method='cubic', fill_value='extrapolate'):
+    def __init__(self, x, y, values, radial_method='cubic', fill_value='extrapolate', recover_concentric_rings=True):
         # Produce a callable instance (given by the function __call__) to interpolate a function value(x, y) sampled at the input positions (x, y)
         # Input: positions x, y as 1D-arrays, values as 1-D array
         # radial_method: the interp1d method (keyword 'kind'), default='cubic' for cubic splines
@@ -53,17 +53,26 @@ class interp2d_fourier:
         ordering_indices = self.get_ordering_indices(x, y)
         values_ordered = np.copy(values)[ordering_indices]
 
+        # Store the (unique) radius values
+        self.radial_axis = radius[ordering_indices][:, 0]
+        # Check if the radius does not vary along angular direction (with tolerance)
+        if np.max(np.std(radius[ordering_indices], axis=1)) > 0.1 * np.min(radius):
+            if not recover_concentric_rings:
+                raise ValueError("Radius must be (approx.) constant along angular direction." + \
+                                " You can try to \"fix\" that by using \"recover_concentric_rings=True\"")
+            else:
+                self.radial_axis = np.mean(radius[ordering_indices], axis=1)
+                values_ordered_interpolated = []
+                for x, y in zip(radius[ordering_indices].T, values_ordered.T):
+                    intpf = intp.interp1d(
+                        x, y, axis=0, kind=radial_method, fill_value='extrapolate')
+                    values_ordered_interpolated.append(intpf(self.radial_axis))
+                values_ordered = np.array(values_ordered_interpolated).T
+
         # FFT over the angular direction, for each radius
         self.angular_FFT = np.fft.rfft(values_ordered, axis=1)
         length = values_ordered.shape[-1]
         self.angular_FFT /= float(length) # normalize
-
-        # Store the (unique) radius values
-        self.radial_axis = radius[ordering_indices][:, 0]
-
-        # Check if the radius does not vary along angular direction (with tolerance)
-        if np.max(np.std(radius[ordering_indices], axis=1)) > 0.001 * np.min(radius):
-            raise ValueError("Radius must be (approx.) constant along angular direction")
 
         # Produce interpolator function, interpolating the FFT components as a function of radius
         self.interpolator_radius = intp.interp1d(self.radial_axis, self.angular_FFT, axis=0, kind=radial_method, fill_value='extrapolate') # Interpolates the Fourier components along the radial axis
