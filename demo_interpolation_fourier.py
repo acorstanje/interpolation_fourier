@@ -12,7 +12,7 @@ def do_plot_radial(interp_fourier, max_mode=2):
     fourier = interp_fourier.get_angular_FFT()
     radial_axis = interp_fourier.get_radial_axis()
 
-    fine_radius = np.arange(0.0, 500.0, 0.5)
+    fine_radius = np.arange(0.0, radial_axis.max(), 0.5)
         
     fourier_interpolated = radial_interpolator(fine_radius)
 
@@ -48,7 +48,9 @@ def do_plot_angular(interp_fourier, fixed_radius, values_for_radius):
     # Inputs: instance of interp2d_fourier, the fixed radius, and 1D-array of values for that radius
     phi_steps = len(values_for_radius)
     phi_step_degrees = 360.0 / phi_steps
-    raw_phi_degrees = np.linspace(0.0, 360.0 - phi_step_degrees , phi_steps)
+
+    raw_phi_degrees = np.linspace(
+        0, 360 - phi_step_degrees, phi_steps) + np.rad2deg(interp_fourier._phi0)
 
     fine_phi = np.linspace(0.0, 2*np.pi, 1000)
     fine_points_x = fixed_radius * np.cos(fine_phi)
@@ -64,49 +66,54 @@ def do_plot_angular(interp_fourier, fixed_radius, values_for_radius):
     plt.plot(fine_phi*180/np.pi, interp_values_truncated, '--', label='Up to 2nd Fourier mode')
     plt.xlabel('Phi [ deg ]')
     plt.ylabel('Value')
-    plt.legend(loc='best')
+    plt.legend(loc='best', fontsize="small")
 
 
-fname = 'sample_data.txt'
-data = np.loadtxt(fname)
-(x, y, values) = data.T
+if __name__ == "__main__":
 
-# Get instance of interpolator, using given values for (x, y)
-fourier_interpolator = interpF.interp2d_fourier(x, y, values)
+    fname = 'sample_data.txt'
+    data = np.loadtxt(fname)
+    (x, y, values) = data.T
 
-# Plot radial dependence of the lowest Fourier components
-do_plot_radial(fourier_interpolator)
+    # Get instance of interpolator, using given values for (x, y)
+    fourier_interpolator = interpF.interp2d_fourier(x, y, values)
 
-# Plot angular interpolation at two fixed radii
-all_radius = np.sqrt(x**2 + y**2)
-ordering_indices = fourier_interpolator.get_ordering_indices(x, y)
-radius_values = all_radius[ordering_indices][:, 0] # unique radius values
-for radius_stepnr in [4, 7]:
-    fixed_radius = radius_values[radius_stepnr]
-    values_for_radius = values[ordering_indices][radius_stepnr, :]
-    do_plot_angular(fourier_interpolator, fixed_radius, values_for_radius)
+    # Plot radial dependence of the lowest Fourier components
+    do_plot_radial(fourier_interpolator)
 
-# Make color plot of f(x, y), using a meshgrid
-dist_scale = 250.0
-ti = np.linspace(-dist_scale, dist_scale, 1000)
-XI, YI = np.meshgrid(ti, ti)
+    # Plot angular interpolation at two fixed radii
+    all_radius = np.sqrt(x**2 + y**2)
+    ordering_indices = fourier_interpolator.get_ordering_indices(x, y)
+    radius_values = all_radius[ordering_indices][:, 0] # unique radius values
+    for radius_stepnr in [4, 7]:
+        fixed_radius = radius_values[radius_stepnr]
+        print(fixed_radius)
+        values_for_radius = values[ordering_indices][radius_stepnr, :]
+        print(values_for_radius)
+        do_plot_angular(fourier_interpolator, fixed_radius, values_for_radius)
 
-# Get interpolated values at each grid point, calling the instance of interp2d_fourier
-ZI = fourier_interpolator(XI, YI)
+    # Make color plot of f(x, y), using a meshgrid
+    dist_scale = 250.0
+    ti = np.linspace(-dist_scale, dist_scale, 1000)
+    XI, YI = np.meshgrid(ti, ti)
+    print(XI.shape)
+    # Get interpolated values at each grid point, calling the instance of interp2d_fourier
+    ZI = fourier_interpolator(XI, YI)
+    print(ZI.shape)
 
-maxp = np.max(ZI)
-plt.figure()
-plt.gca().pcolor(XI, YI, ZI, vmax=maxp, vmin=0, cmap=cm.jet)
-plt.scatter(x, y, marker='+', s=3, color='w')
-mm = cm.ScalarMappable(cmap=cm.jet)
-mm.set_array([0.0, maxp])
-cbar = plt.colorbar(mm)
-cbar.set_label('Values of f(x, y)')
-plt.xlabel('x [ m ]')
-plt.ylabel('y [ m ]')
-plt.xlim(-250, 250)
-plt.ylim(-250, 250)
-plt.gca().set_aspect('equal')
+    maxp = np.max(ZI)
+    plt.figure()
+    plt.gca().pcolor(XI, YI, ZI, vmax=maxp, vmin=0, cmap=cm.jet)
+    plt.scatter(x, y, marker='+', s=3, color='w')
+    mm = cm.ScalarMappable(cmap=cm.jet)
+    mm.set_array([0.0, maxp])
+    cbar = plt.colorbar(mm)
+    cbar.set_label('Values of f(x, y)')
+    plt.xlabel('x [ m ]')
+    plt.ylabel('y [ m ]')
+    plt.xlim(-250, 250)
+    plt.ylim(-250, 250)
+    plt.gca().set_aspect('equal')
 
-plt.show()
+    plt.show()
 
