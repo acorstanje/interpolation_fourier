@@ -10,17 +10,19 @@ class interp2d_fourier:
         # Input: positions x and y as 1-D arrays
         radius = np.sqrt(x**2 + y**2)
         phi = np.arctan2(y, x) # uses interval -pi..pi
+        phi = np.deg2rad(np.around(np.rad2deg(phi)))
         phi[np.abs(phi) < np.deg2rad(0.01)] = 0.0 # avoid pathology
         phi[phi<0] += 2*np.pi # put into 0..2pi for ordering
-
         phi_sorting = np.argsort(phi)
+
         # Assume star-shaped pattern, i.e. radial # steps = number of (almost) identical phi-values
         # May not work very near (0, 0)
-        test = phi[phi_sorting] - phi[phi_sorting][0]
+        self._phi0 = phi[phi_sorting][0]
+        test = phi[phi_sorting] - self._phi0
         radial_steps = len(np.where(np.abs(test) < 0.0001)[0])
         phi_steps = len(phi_sorting) // radial_steps
+        phi_sorting = phi_sorting.reshape((phi_steps, radial_steps))
 
-        phi_sorting = phi_sorting.reshape( (phi_steps, radial_steps) )
         indices = np.argsort(radius[phi_sorting], axis=1)
         for i in range(phi_steps): # Sort by radius; should be possible without for-loop...
             phi_sorting[i] = phi_sorting[i][indices[i]]
@@ -73,7 +75,7 @@ class interp2d_fourier:
         # max_fourier_mode: optional cutoff, do Fourier sum up to (incl.) this mode
 
         radius = np.sqrt(x**2 + y**2)
-        phi = np.arctan2(y, x)
+        phi = np.arctan2(y, x) - self._phi0
 
         # Interpolate Fourier components over all values of radius
         fourier = self.interpolator_radius(radius)
@@ -83,7 +85,6 @@ class interp2d_fourier:
 
         limit = max_fourier_mode+1 if max_fourier_mode is not None else fourier_len
         mult = np.linspace(0, limit-1, limit).astype(int) # multipliers for Fourier modes, as k in cos(k*phi), sin(k*phi)
-
         result = np.zeros_like(radius)
         if isinstance(phi, float):
             result = np.sum(cos_components[..., 0:limit] * np.cos(phi * mult)) + np.sum(sin_components[..., 0:limit] * np.sin(phi * mult))
