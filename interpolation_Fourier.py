@@ -22,7 +22,7 @@ class interp2d_fourier:
         radial_steps = len(np.where(np.abs(test) < 0.0001)[0])
         phi_steps = len(phi_sorting) // radial_steps
         phi_sorting = phi_sorting.reshape((phi_steps, radial_steps))
-    
+
         indices = np.argsort(radius[phi_sorting], axis=1)
         for i in range(phi_steps): # Sort by radius; should be possible without for-loop...
             phi_sorting[i] = phi_sorting[i][indices[i]]
@@ -41,11 +41,13 @@ class interp2d_fourier:
 
         return (cos_components, sin_components)
 
-    def __init__(self, x, y, values, radial_method='cubic', fill_value='extrapolate', recover_concentric_rings=True):
+    def __init__(self, x, y, values, radial_method='cubic', fill_value=None, recover_concentric_rings=False):
         # Produce a callable instance (given by the function __call__) to interpolate a function value(x, y) sampled at the input positions (x, y)
         # Input: positions x, y as 1D-arrays, values as 1-D array
         # radial_method: the interp1d method (keyword 'kind'), default='cubic' for cubic splines
-        # fill_value: the fill value to use for a radius outside the min..max radius interval from the input. Set to 'extrapolate' by default; accuracy outside the interval is limited
+        # fill_value: the fill value to use for a radius outside the min..max radius interval from the input. Set to 'extrapolate' to extrapolate beyond radial limits; accuracy outside the interval is limited
+        # Default fill_value is None, meaning stay constant for r < r_min, and 0 for r > r_max
+        # recover_concentric_rings: default False, set True if the grid is not purely circular-symmetric; results may not be accurate
 
         # Convert (x, y) to (r, phi), make 2d position array, sorting positions and values by r and phi
         radius = np.sqrt(x**2 + y**2)
